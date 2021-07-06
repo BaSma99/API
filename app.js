@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const bodyParser = require('body-parser');
@@ -41,6 +40,11 @@ const userSchema = new mongoose.Schema( {
     birthDate: String,
     field: String,
     city: String,
+    skills: {
+        type: String,
+        required: [true, 'you must give a skill']
+    },
+    graduated: String,
 });
 
 
@@ -71,7 +75,9 @@ bcrypt.hash(req.body.password, saltRounds,function(err, hash){
          birthDate: req.body.birthDate,
          field: req.body.field,
          city: req.body.city,
-         courses: req.body.Courses
+         skills: req.body.skills,
+         graduated: req.body.graduated,
+        //  courses: req.body.Courses
         });
         newUser.save(function(err){
             if (!err){
@@ -177,10 +183,10 @@ const courseSchema = new mongoose.Schema( {
     requirements: String,
     availableFor: String,
     about: String,
-    applicant:[{
-        type: mongoose.Schema.Types.userName,
-        ref: 'User'
-    }] 
+    applicant: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    }]
 });
 
 const Course = new mongoose.model('Course', courseSchema);
@@ -209,7 +215,7 @@ app.route("/courses")
         requirements: req.body.requirements,
         availableFor: req.body.availableFor,
         about: req.body.about,
-        applicant: req.body.applicant
+        // applicant: req.body.applicant
         });
         newCourse.save(function(err){
             if (!err){
@@ -253,7 +259,7 @@ app.route("/courses/:courseName")
   const courseName = req.params.courseName;
   Course.update(
       {courseName:req.params.courseName},
-      {applicant: req.body.applicant.userName},
+      {$set: req.body},
     function(err){
       if (!err){
         res.send("Successfully updated selected course.");
@@ -280,6 +286,7 @@ app.route("/courses/:courseName")
 const companySchema = new mongoose.Schema( {
     companyName: String,
     companyLocation:String,
+    companyUserName: String,
     companyEmail: {
         type: String,
         required: [true, 'you must give an email']
@@ -294,9 +301,9 @@ const companySchema = new mongoose.Schema( {
     },
     companyField: String,
     courses: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Course'
-    }]
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Course'
+    }] 
 });
 
 const Company = new mongoose.model('Company', companySchema);
@@ -315,15 +322,17 @@ app.route("/companies")
 })
 
 .post(function(req, res){
-bcrypt.hash(req.body.password, saltRounds,function(err, hash){
+bcrypt.hash(req.body.password, saltRounds,
+  function(err, hash){
     const newCompany = new Company({
         companyName: req.body.companyName,
         companyLocation:req.body.companyLocation,
+        companyUserName:req.body.companyUserName,
         companyEmail: req.body.companyEmail,
         password: hash,
         confirmPassword: hash,
         companyField: req.body.companyField,
-        courses: req.body.courses
+        // courses: req.body.courses
         });
         newCompany.save(function(err){
             if (!err){
@@ -350,24 +359,24 @@ bcrypt.hash(req.body.password, saltRounds,function(err, hash){
 
 ////////////////////////////////////////////////
 
-app.route("/companies/:companyEmail")
+app.route("/companies/:companyUserName")
 
 .get(function(req, res){
-  const companyEmail = req.params.companyEmail;
-  Company.findOne({companyEmail: companyEmail}, function(err, company){
+  const companyUserName = req.params.companyUserName;
+  Company.findOne({companyUserName: companyUserName}, function(err, company){
     if (company){
       const jsonCompany = JSON.stringify(company);
       res.send(jsonCompany);
     } else {
-      res.send("No company with the email found.");
+      res.send("No company with the user name found.");
     }
   });
 })
 
 .patch(function(req, res){
-  const companyEmail = req.params.companyEmail;
+  const companyUserName = req.params.companyUserName;
   Company.update(
-      {companyEmail:req.params.companyEmail},
+      {companyUserName:req.params.companyUserName},
       {$set: req.body},
     function(err){
       if (!err){
@@ -379,8 +388,8 @@ app.route("/companies/:companyEmail")
 })
 
 .delete(function(req, res){
-  const companyEmail = req.params.companyEmail;
-  Company.findOneAndDelete({companyEmail: companyEmail}, function(err){
+  const companyUserName = req.params.companyUserName;
+  Company.findOneAndDelete({companyUserName: companyUserName}, function(err){
     if (!err){
       res.send("Successfully deleted selected company .");
     } else {
@@ -414,7 +423,6 @@ app.route("/companyLogin")
     }
 });    
 });
-
 
 
 ////////////////////////////
